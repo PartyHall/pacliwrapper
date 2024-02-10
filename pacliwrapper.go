@@ -31,8 +31,17 @@ func (d PaDevice) GetVolume() int {
 	return int((float64(d.Volume.Value) / 65536.0) * 100)
 }
 
+func (d PaDevice) SetMute(mute bool) error {
+	val := "0"
+	if mute {
+		val = "1"
+	}
+
+	cmd := exec.Command("pactl", "set-sink-mute", fmt.Sprintf("%v", d.Index), val)
+	return cmd.Run()
+}
+
 func (d *PaDevice) SetVolume(percentage int) error {
-	fmt.Println(d.Index)
 	cmd := exec.Command("pactl", "set-sink-volume", fmt.Sprintf("%v", d.Index), fmt.Sprintf("%v%%", percentage))
 
 	var stderr bytes.Buffer
