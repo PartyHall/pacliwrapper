@@ -16,15 +16,15 @@ type PaVolume struct {
 }
 
 type PaDevice struct {
-	Index int
-	State string
+	Index int    `json:"index"`
+	State string `json:"state"`
 
-	Name        string
-	Description string
+	Name        string `json:"name"`
+	Description string `json:"description"`
 
-	Driver string
-	Mute   bool
-	Volume PaVolume
+	Driver string   `json:"driver"`
+	Mute   bool     `json:"mute"`
+	Volume PaVolume `json:"volume"`
 }
 
 func (d PaDevice) GetVolume() int {
