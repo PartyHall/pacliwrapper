@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"reflect"
 	"strings"
 )
 
@@ -21,13 +22,13 @@ type PaDevice struct {
 	Name        string
 	Description string
 
-	Driver     string
-	Mute       bool
-	BaseVolume PaVolume
+	Driver string
+	Mute   bool
+	Volume PaVolume
 }
 
 func (d PaDevice) GetVolume() int {
-	return int((float64(d.BaseVolume.Value) / 65536.0) * 100)
+	return int((float64(d.Volume.Value) / 65536.0) * 100)
 }
 
 func (d *PaDevice) SetVolume(percentage int) error {
@@ -42,7 +43,7 @@ func (d *PaDevice) SetVolume(percentage int) error {
 		return fmt.Errorf("error executing pactl command: %v, stderr: %s", err, stderr.String())
 	}
 
-	d.BaseVolume.Value = int64(float64(percentage) / 100 * 65536)
+	d.Volume.Value = int64(float64(percentage) / 100 * 65536)
 
 	return nil
 }
@@ -90,10 +91,19 @@ func (pcw *PaCliWrapper) Refresh() error {
 		driver, _ := device["driver"].(string)
 		mute, _ := device["mute"].(bool)
 
-		bv, _ := device["base_volume"].(map[string]interface{})
-		bv_val, _ := bv["value"].(int64)
-		bv_perc, _ := bv["value_percentage"].(string)
-		bv_db, _ := bv["db"].(string)
+		bv, _ := device["volume"].(map[string]interface{})
+
+		keys := reflect.ValueOf(bv).MapKeys()
+		if len(keys) == 0 {
+			fmt.Println("weird device")
+			continue
+		}
+
+		bv_data := bv[(keys[0].String())].(map[string]interface{})
+
+		bv_val, _ := bv_data["value"].(float64)
+		bv_perc, _ := bv_data["value_percent"].(string)
+		bv_db, _ := bv_data["db"].(string)
 
 		currDevice := PaDevice{
 			Index:       int(idx),
@@ -102,8 +112,8 @@ func (pcw *PaCliWrapper) Refresh() error {
 			Description: strings.TrimSpace(desc),
 			Driver:      strings.TrimSpace(driver),
 			Mute:        mute,
-			BaseVolume: PaVolume{
-				Value:        bv_val,
+			Volume: PaVolume{
+				Value:        int64(bv_val),
 				ValuePercent: strings.TrimSpace(bv_perc),
 				Decibel:      strings.TrimSpace(bv_db),
 			},
